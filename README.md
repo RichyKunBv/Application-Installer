@@ -1,4 +1,4 @@
-# Application Installer in ZIP
+# Application Installer
 
 Un asistente de terminal para instalar aplicaciones de Linux distribuidas en archivos `.zip` o `.tar.gz` de forma fácil y consistente.
 
@@ -14,6 +14,10 @@ Este script toma un archivo comprimido y lo instala correctamente en tu sistema.
   * **Crea un acceso directo** en tu menú de aplicaciones.
   * **Añade un comando a tu terminal** para que puedas ejecutar la app desde cualquier lugar.
   * **Se actualiza a sí mismo** para tener siempre la última versión.
+
+### Desinstala aplicaciones facilmente
+ * **Solo con pocos clicks** preciona 2 y elije la aplicacion que quieras desinstalar
+ * (Solo funciona con aplicaciones instaladas desde este script ya que hace un historial de instalacion localmente conforme a las que instalas)
 
 -----
 
