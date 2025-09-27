@@ -6,7 +6,7 @@
 # comprimidos (.zip, .tar.gz, .tar.xz, .tar.bz2, .7z) y binarios.
 # ##################################################################
 
-VERSION_LOCAL="1.0.2"
+VERSION_LOCAL="1.0.3"
 
 # --- Configuración de Colores ---
 C_RESET='\033[0m'
@@ -32,12 +32,11 @@ function instalar_aplicacion() {
     TEMP_DIR=$(mktemp -d -t install-app-XXXXXX)
     trap 'info "Limpiando archivos temporales..."; rm -rf "$TEMP_DIR"' EXIT
     
-    # VERSIÓN 1.0: Manejo de binarios simples
     if [ -f "$INPUT_FILE" ] && [ -x "$INPUT_FILE" ] && ! [[ "$INPUT_FILE" =~ \.zip$|\.tar\..*$|\.tgz$|\.7z$ ]]; then
         info "Se detectó un archivo binario simple."
         cp "$INPUT_FILE" "$TEMP_DIR/"
         EXEC_PATH="./$(basename "$INPUT_FILE")"
-    else # Proceso para archivos comprimidos
+    else
         info "Descomprimiendo '$INPUT_FILE'..."
         case "$INPUT_FILE" in
             *.zip) unzip -q "$INPUT_FILE" -d "$TEMP_DIR" || error "Fallo al descomprimir ZIP." ;;
@@ -57,11 +56,9 @@ function instalar_aplicacion() {
         fi
 
         info "Analizando el contenido de la aplicación..."
-        # VERSIÓN 1.0: Búsqueda inteligente de ejecutables
         readarray -t EXECUTABLES < <(find . -maxdepth 2 -type f -executable -not -name "*.so*" | grep -viE 'uninstall|setup|update|crashpad' ; find . -type f -executable -not -name "*.so*")
         
         if [ ${#EXECUTABLES[@]} -eq 0 ]; then error "No se encontraron archivos ejecutables."; fi
-        # Eliminar duplicados si la búsqueda ampliada encuentra los mismos
         mapfile -t EXECUTABLES < <(printf "%s\n" "${EXECUTABLES[@]}" | sort -u)
 
         info "Selecciona el ejecutable principal (se muestran los más probables primero):"
@@ -71,7 +68,6 @@ function instalar_aplicacion() {
         done
     fi
 
-    # VERSIÓN 1.0: Detección de dependencias
     info "Analizando dependencias del ejecutable..."
     if command -v ldd &>/dev/null; then
         MISSING_LIBS=$(ldd "$EXEC_PATH" 2>/dev/null | grep 'not found')
@@ -90,8 +86,7 @@ function instalar_aplicacion() {
     fi
 
     ICON_PATH=""
-    if [ ! -f "$EXEC_PATH" ]; then # Si es un binario simple, no buscamos icono
-        # VERSIÓN 1.0: Búsqueda inteligente de iconos
+    if [ ! -f "$EXEC_PATH" ]; then 
         readarray -t ICONS < <(find . -type f \( -ipath "*scalable*" -o -ipath "*256x256*" -o -ipath "*512x512*" -o -ipath "*icons/hicolor*" \) 2>/dev/null ; find . -type f \( -name "*.png" -o -name "*.svg" \) 2>/dev/null)
         if [ ${#ICONS[@]} -gt 0 ]; then
             mapfile -t ICONS < <(printf "%s\n" "${ICONS[@]}" | sort -u)
@@ -111,7 +106,6 @@ function instalar_aplicacion() {
     echo -e "\n${C_CYAN}--- Configuración de la Instalación ---${C_RESET}"
     read -p "Introduce el nombre para la aplicación: " APP_NAME
 
-    # VERSIÓN 1.0: Aviso de instalación duplicada
     local REGISTRY_FILE="$HOME/.config/app-installer/registry.log"
     if [ -f "$REGISTRY_FILE" ] && grep -q "^${APP_NAME}|" "$REGISTRY_FILE"; then
         warn "Ya existe una aplicación registrada con el nombre '$APP_NAME'."
@@ -122,7 +116,6 @@ function instalar_aplicacion() {
     fi
 
     APP_DIR_NAME=$(echo "$APP_NAME" | sed 's/ /-/g')
-    # ... (resto de la función de instalación sin cambios)
     info "Elige una ubicación para la instalación:"
     INSTALL_OPTIONS=("Solo para el usuario actual (~/Applications) - Recomendado" "Para todos los usuarios del sistema (/opt) - Requiere Sudo" "Especificar una ruta personalizada")
     PS3="Selecciona una opción: "
@@ -136,7 +129,6 @@ function instalar_aplicacion() {
     done
 
     info "Preparando para instalar..."
-    # ... (sudo, mkdir, rsync, ln, .desktop, registro, etc., sin cambios)
     if [ "$NEEDS_SUDO" = true ] && [ "$EUID" -ne 0 ]; then info "Se requieren privilegios de administrador."; sudo bash "$0"; exit $?; fi
     mkdir -p "$INSTALL_DIR" || error "No se pudo crear el directorio de instalación."
     mkdir -p "$BIN_LINK_DIR"; mkdir -p "$DESKTOP_DIR"
@@ -167,7 +159,8 @@ EOL
     info "Guardando información en el registro..."
     mkdir -p "$(dirname "$REGISTRY_FILE")"
     echo "$APP_NAME|$INSTALL_DIR|$BIN_LINK_DIR/$APP_COMMAND_NAME|$DESKTOP_FILE_PATH" >> "$REGISTRY_FILE"
-    echo "--------------------------------------------------"; echo -e " Aplicación:    ${C_YELLOW}$APP_NAME${C_RESET}"; echo -e " Instalado en:    ${C_YELLOW}$INSTALL_DIR${C_RESET}"; echo -e " Comando:         ${C_YELLOW}$APP_COMMAND_NAME${C_RESET}"; echo "--------------------------------------------------";
+    echo "--------------------------------------------------"; echo -e " Aplicación:    ${C_YELLOW}$APP_NAME${C_RESET}"; 
+    echo -e " Instalado en:    ${C_YELLOW}$INSTALL_DIR${C_RESET}"; echo -e " Comando:         ${C_YELLOW}$APP_COMMAND_NAME${C_RESET}"; echo "--------------------------------------------------";
 }
 
 function desinstalar_aplicacion() {
@@ -193,9 +186,7 @@ function desinstalar_aplicacion() {
 }
 
 function listar_aplicaciones() {
-    # VERSIÓN 0.6: Añadida
     local REGISTRY_FILE="$HOME/.config/app-installer/registry.log"
-    # ... (código de listar sin cambios)
     if [ ! -f "$REGISTRY_FILE" ] || [ ! -s "$REGISTRY_FILE" ]; then error "No se encontró el registro o está vacío."; return 1; fi
     echo -e "\n${C_CYAN}--- Aplicaciones Instaladas ---${C_RESET}"; echo "---------------------------------------------------------------------"; printf "%-25s | %-20s | %s\n" "NOMBRE" "COMANDO" "RUTA DE INSTALACIÓN"; echo "---------------------------------------------------------------------";
     while IFS='|' read -r name dir command desktop_file; do
@@ -204,62 +195,70 @@ function listar_aplicaciones() {
 }
 
 function actualizar_script() {
-    # CORRECCIÓN: Usar las variables de color correctas (C_*)
-    echo -e "\n${C_YELLOW}› Verificando actualizaciones para el script...${C_RESET}"
+    echo -e "\n${AMA}› Verificando actualizaciones para el script...${DEFAULT}"
     
-    # CORRECCIÓN: Nombre del repositorio corregido
-    local repos_posibles=("Application-Installer-in-ZIP")
-    local scripts_posibles=("instalar-app.sh")
+    # --- LISTAS DE POSIBLES NOMBRES ---
+    local repos_posibles=("Apptenix")
+    local scripts_posibles=("Apptenix.sh")
 
     local url_version_encontrada=""
     local url_script_encontrado=""
     local exito=false
+    
     local download_tool=""
-
     if command -v curl &> /dev/null; then
         download_tool="curl -sfo"
     elif command -v wget &> /dev/null; then
         download_tool="wget -qO"
     else
-        error "Se necesita 'curl' o 'wget' para la auto-actualización."
+        echo -e "${ROJO}  Error: Se necesita 'curl' o 'wget' para la auto-actualización.${DEFAULT}"
         return 1
     fi
 
-    # Bucle para encontrar la URL válida (sin cambios en la lógica)
     for repo in "${repos_posibles[@]}"; do
         local url_temp_version="https://raw.githubusercontent.com/RichyKunBv/${repo}/main/version.txt"
         if curl --output /dev/null --silent --head --fail "$url_temp_version"; then
             url_version_encontrada="$url_temp_version"
             for script_name in "${scripts_posibles[@]}"; do
-                local url_temp_script="https://raw.githubusercontent.com/RichyKunBv/${repo}/main/${script_name}"
-                if curl --output /dev/null --silent --head --fail "$url_temp_script"; then
+                 local url_temp_script="https://raw.githubusercontent.com/RichyKunBv/${repo}/main/${script_name}"
+                 if curl --output /dev/null --silent --head --fail "$url_temp_script"; then
                     url_script_encontrado="$url_temp_script"
                     exito=true
                     break
-                fi
+                 fi
             done
         fi
         [ "$exito" = true ] && break
     done
 
     if [ "$exito" = false ]; then
-        error "No se pudo encontrar un repositorio o script válido en GitHub."
+        echo -e "${ROJO}  Error: No se pudo encontrar un repositorio o script válido en GitHub.${DEFAULT}"
         return 1
     fi
 
     local version_remota
-    version_remota=$($download_tool - "$url_version_encontrada" | tr -d '[:space:]') # tr -d elimina espacios/líneas en blanco
+    version_remota=$($download_tool - "$url_version_encontrada")
     if [ -z "$version_remota" ]; then
-        error "No se pudo obtener la versión remota."
+        echo -e "${ROJO}  Error: No se pudo obtener la versión remota.${DEFAULT}"
         return 1
     fi
     
-    # CORRECCIÓN: Reemplazo de dpkg por un método universal
-    local version_mas_nueva=$(printf "%s\n%s" "$version_remota" "$VERSION_LOCAL" | sort -V | tail -n1)
-    
-    if [[ "$version_mas_nueva" != "$VERSION_LOCAL" ]]; then
-        echo -e "${C_GREEN}  ¡Nueva versión ($version_remota) encontrada! La tuya es la $VERSION_LOCAL.${C_RESET}"
-        echo -e "${C_YELLOW}  Descargando actualización...${C_RESET}"
+    local version_es_nueva=false
+    if [ "$DISTRO_FAMILIA" == "debian" ]; then
+        if dpkg --compare-versions "$version_remota" gt "$VERSION_LOCAL"; then
+            version_es_nueva=true
+        fi
+    else
+
+        local version_mas_alta=$(printf '%s\n' "$version_remota" "$VERSION_LOCAL" | sort -V | tail -n 1)
+        if [ "$version_mas_alta" == "$version_remota" ] && [ "$version_remota" != "$VERSION_LOCAL" ]; then
+            version_es_nueva=true
+        fi
+    fi
+
+    if [ "$version_es_nueva" = true ]; then
+        echo -e "${VERDE}  ¡Nueva versión ($version_remota) encontrada! La tuya es la $VERSION_LOCAL.${DEFAULT}"
+        echo -e "${AMA}  Descargando actualización...${DEFAULT}"
         
         local script_actual="$0"
         local script_nuevo="${script_actual}.new"
@@ -267,20 +266,19 @@ function actualizar_script() {
         if $download_tool "$script_nuevo" "$url_script_encontrado"; then
             chmod +x "$script_nuevo"
             mv "$script_nuevo" "$script_actual"
-            success "¡Script actualizado con éxito!"
-            echo -e "${C_YELLOW}  Por favor, vuelve a ejecutar el script para usar la nueva versión.${C_RESET}"
+            echo -e "${VERDE}  ¡Script actualizado con éxito!${DEFAULT}"
+            echo -e "${AMA}  Por favor, vuelve a ejecutar el script para usar la nueva versión.${DEFAULT}"
             exit 0
         else
-            error "Error al descargar el script actualizado."
+            echo -e "${ROJO}  Error al descargar el script actualizado.${DEFAULT}"
             rm -f "$script_nuevo"
             return 1
         fi
     else
-        success "Ya tienes la última versión ($VERSION_LOCAL). No se necesita actualizar."
+        echo -e "${VERDE}  Ya tienes la última versión ($VERSION_LOCAL). No se necesita actualizar.${DEFAULT}"
     fi
 }
 
-#--- Menú Principal ---
 while true; do
     clear 
     echo -e "${C_CYAN}===== Gestor de Aplicaciones v$VERSION_LOCAL =====${C_RESET}"
