@@ -1,7 +1,7 @@
 # 🐧 Gestor de Aplicaciones para Linux
 
 [![Versión](https://img.shields.io/badge/Versión-1.0-blue.svg)](https://github.com/RichyKunBv/Application-Installer-in-ZIP)
-[![Licencia](https://img.shields.io/badge/Licencia-GPL--3.0-green.svg)](https://github.com/RichyKunBv/Application-Installer-in-ZIP/blob/main/LICENSE)
+[![Licencia](https://img.shields.io/badge/Licencia-Apache-green.svg)](https://github.com/RichyKunBv/Application-Installer-in-ZIP/blob/main/LICENSE)
 [![Lenguaje](https://img.shields.io/badge/Lenguaje-Bash-lightgrey.svg)](https://github.com/RichyKunBv/Application-Installer-in-ZIP)
 
 Un script de terminal para instalar, gestionar y desinstalar aplicaciones portátiles de Linux de forma sencilla, inteligente y sin pereza.
