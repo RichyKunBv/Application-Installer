@@ -2,12 +2,14 @@
 
 # Apptenix - Gestor de Aplicaciones
 # by RichyKunBv <3
+# Licencia: Apache License 2.0
+
 
 set -o errexit
 set -o pipefail
 set -o nounset
 
-VERSION_LOCAL="1.0.4"
+VERSION_LOCAL="1.0.5"
 
 # ============================
 # Colores
